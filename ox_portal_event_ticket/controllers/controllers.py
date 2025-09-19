@@ -242,3 +242,36 @@ class EventPortal(CustomerPortal):
         pdf = request.env["ir.actions.report"].sudo()._render_qweb_pdf('event.action_report_event_registration_full_page_ticket', event_sudo.id)[0]
         report_name = event_sudo.name +'.pdf'
         return request.make_response(pdf, headers=[('Content-Type', 'application/pdf'),('Content-Disposition', content_disposition(report_name))])
+
+    # ----------------------------
+    # Available Events (new)
+    # ----------------------------
+    @http.route(['/my/available/events'], type='http', auth="user", website=True)
+    def portal_available_events(self, **kw):
+        events = request.env['event.event'].sudo().search(
+            [('is_published', '=', True)], order="date_begin asc"
+        )
+        return request.render('ox_portal_event_ticket.portal_available_events', {
+            'available_events': events,
+            'page_name': 'available_events',
+        })
+
+    # ----------------------------
+    # Register for Event (new)
+    # ----------------------------
+    @http.route(['/my/event/register/<model("event.event"):event>'],
+                type='http', auth="user", website=True)
+    def portal_event_register(self, event, **post):
+        partner = request.env.user.partner_id
+        registration = request.env['event.registration'].sudo().create({
+            'event_id': event.id,
+            'partner_id': partner.id,
+            'name': partner.name,
+            'email': partner.email,
+            'phone': partner.phone,
+        })
+
+        return request.render('ox_portal_event_ticket.portal_event_register_success', {
+            'event': event,
+            'registration': registration,
+        })
