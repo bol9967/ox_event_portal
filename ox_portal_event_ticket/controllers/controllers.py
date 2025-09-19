@@ -248,11 +248,21 @@ class EventPortal(CustomerPortal):
     # ----------------------------
     @http.route(['/my/available/events'], type='http', auth="user", website=True)
     def portal_available_events(self, **kw):
+        partner = request.env.user.partner_id
         events = request.env['event.event'].sudo().search(
             [('is_published', '=', True)], order="date_begin asc"
         )
+
+        # Find registrations of this partner
+        registrations = request.env['event.registration'].sudo().search([
+            ('partner_id', '=', partner.id),
+            ('event_id', 'in', events.ids)
+        ])
+        registered_event_ids = registrations.mapped('event_id').ids
+
         return request.render('ox_portal_event_ticket.portal_available_events', {
             'available_events': events,
+            'registered_event_ids': registered_event_ids,
             'page_name': 'available_events',
         })
 
@@ -263,6 +273,21 @@ class EventPortal(CustomerPortal):
                 type='http', auth="user", website=True)
     def portal_event_register(self, event, **post):
         partner = request.env.user.partner_id
+
+        # 🔍 Check if already registered for this event
+        existing = request.env['event.registration'].sudo().search([
+            ('event_id', '=', event.id),
+            ('partner_id', '=', partner.id)
+        ], limit=1)
+
+        if existing:
+            # Show Already Registered page
+            return request.render('ox_portal_event_ticket.portal_event_register_already', {
+                'event': event,
+                'registration': existing,
+            })
+
+        # ✅ Otherwise create new registration
         registration = request.env['event.registration'].sudo().create({
             'event_id': event.id,
             'partner_id': partner.id,
@@ -275,3 +300,4 @@ class EventPortal(CustomerPortal):
             'event': event,
             'registration': registration,
         })
+
