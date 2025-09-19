@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+<!-- Event Tickets Card -->
+<template id="portal_my_home_event" inherit_id="portal.portal_my_home" name="Show Events" customize_show="True">
+    <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+        <t t-call="portal.portal_docs_entry">
+            <t t-set="icon" t-value="'/ox_portal_event_ticket/static/description/logo3.png'"/>
+            <t t-set="title">Event Tickets</t>
+            <t t-set="text">View and download your event tickets</t>
+            <t t-set="url" t-value="'/my/events'"/>
+            <t t-set="placeholder_count" t-value="'event_count'"/>
+        </t>
+    </xpath>
+</template>    
+	<template id="portal_my_home_menu_event" name="Portal layout : Event Tickets" inherit_id="portal.portal_breadcrumbs" priority="6">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'events' " t-attf-class="breadcrumb-item #{'active ' if not events else ''}">
+                
+                <!-- ? Add custom Event Tickets icon -->
+                <img src="/ox_portal_event_ticket/static/description/logo3.png"
+                    alt="Event Tickets"
+                    style="width:16px; height:16px; margin-right:6px;"/>
+
+                <a t-if="event" t-attf-href="/my/events?{{ keep_query() }}">
+                    My Event Tickets
+                </a>
+                <t t-else="">
+                    My Event Tickets
+                </t>
+            </li>
+
+            <li t-if="event" class="breadcrumb-item active">
+                <span t-field="event.event_id.name"/>
+            </li>
+        </xpath>
+    </template>
+    <template id="portal_my_events" name="My Events">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Events</t>
+            </t>
+            <div t-if="not grouped_events" class="alert alert-warning mt8" role="alert">
+                There are no events.
+            </div>
+            <t t-if="grouped_events" t-call="portal.portal_table">
+                <t t-foreach="grouped_events" t-as="events">
+                    <thead>
+                        <tr>
+                            <th t-if="groupby == 'none'" width="600">Event Name</th>
+                            <t t-else="">
+                                <t t-if="groupby == 'event'">
+                                    <th><em class="font-weight-normal text-muted">Events:</em>
+                                    <span t-field="events[0].event_id.name"/></th>
+                                </t>
+                            </t>
+                            <th>Attendee</th>
+                            <th>Registration Date</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>State</th>
+                            <th>Download Ticket</th>
+                        </tr>
+                    </thead>
+                    <t t-foreach="events" t-as="event">
+                        <tr>
+                            <td><a t-attf-href="/my/event/#{event.id}"><span t-field="event.event_id.name"/></a></td>
+                            <td><span t-field="event.name"/></td>
+                            <td><span t-field="event.create_date"/></td>
+                            <td><span t-field="event.phone"/></td>
+                            <td><span t-field="event.email"/></td>
+                            <td><span t-field="event.state"/></td>
+                            <td><a role="button" type="submit" t-attf-href="/event/ticket/report/#{event.id}" class="btn btn-secondary btn-block o_print_btn" title="print" target="_blank"><i class="fa fa-print"/> Download</a></td>
+                        </tr>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="event_followup" name="Event Portal Template" inherit_id="portal.portal_sidebar" primary="True">
+        <xpath expr="//div[hasclass('o_portal_sidebar')]" position="inside">
+            <div class="row mt16 o_portal_sale_sidebar">
+                <!-- Sidebar -->
+
+                <t t-call="portal.portal_record_sidebar">
+                    <t t-set="classes" t-value="'col-lg-auto d-print-none'"/>
+
+                    <t t-set="entries">
+                        <ul class="list-group list-group-flush flex-wrap flex-row flex-lg-column">
+                            <li class="list-group-item d-grid align-content-start">
+                                <div class="o_download_pdf btn-toolbar flex-sm-nowrap">
+                                    <div class="btn-group flex-grow-1 me-1 mb-1">
+                                        <a class="btn btn-secondary o_download_btn" t-attf-href="/event/ticket/report/#{event.id}" title="Download"><i class="fa fa-download"/> Download Ticket</a>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li t-if="event.event_id.user_id" class="list-group-item flex-grow-1">
+                                <div class="small mb-1">
+                                    <strong class="text-muted">Salesperson</strong>
+                                </div>
+                                <div class="row flex-nowrap">
+                                    <div class="col flex-grow-0 pe-2">
+                                        <img class="rounded-circle mr4 float-start o_portal_contact_img"
+                                            t-att-src="image_data_uri(event.event_id.user_id.avatar_1024)"
+                                            alt="Contact"/>
+                                    </div>
+                                    <div class="col ps-0" style="min-width: 150px">
+                                        <span t-field="event.event_id.user_id"
+                                            t-options='{"widget": "contact", "fields": ["name", "phone"], "no_marker": True}'/>
+                                        <a href="#discussion" class="small">
+                                            <i class="fa fa-comment"></i> Send message
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </t>
+                </t>
+
+                <div id="quote_content" class="col-12 col-lg justify-content-end">
+                    <div class="card" id="portal_event_content">
+                        <div t-call="ox_portal_event_ticket.event_portal_content"/>
+                    </div>
+
+                    <div id="event_communication" class="mt-4">
+                        <h2>History</h2>
+                        <t t-call="portal.message_thread">
+                            <t t-set="object" t-value="event"/>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="event_portal_content" name="Event Portal Content">
+        <!-- Intro -->
+        <div id="introduction" class="row pb-2 pt-3 card-header bg-white">
+            <h2 class="col-md-8 my-0">
+                <em t-esc="event.state"/>
+            </h2>
+        </div>
+
+        <div class="card-body">
+            <!-- Informations -->
+            <div id="informations">
+                <div class="row" id="tr_date">
+                    <div class="mb-3 col-6" t-if="event.event_id.user_id.partner_id">
+                        <strong>Contact:</strong> <span t-field="event.event_id.user_id.partner_id.name" /><br/>
+                        <span t-field="event.event_id.user_id.partner_id.street" /><br/>
+                        <span t-field="event.event_id.user_id.partner_id.city" /><br/>
+                        <span t-field="event.event_id.user_id.partner_id.state_id" />
+                        <span t-field="event.event_id.user_id.partner_id.zip" /><br/>
+                        <span t-field="event.event_id.user_id.partner_id.country_id" /><br/>
+                    </div>
+                    <div class="mb-3 col-6">
+                        <t t-if="event.create_date">
+                            <strong>Registration Date:</strong> 
+                            <span t-field="event.create_date"/>
+                        </t>
+                    </div>
+                </div>
+                <div class="row" id="tr_date">
+                    <div class="mb-3 col-6" t-if="event.event_id.name">
+                        <strong>Event:</strong> <span t-field="event.event_id.name"/>
+                    </div>
+                    <div class="mb-3 col-6">
+                        <t t-if="event.create_date">
+                            <strong>Attendee Name:</strong> 
+                            <span t-field="event.name"/>
+                        </t>
+                    </div>
+                </div>
+                <div class="row" id="tr_date">
+                    <div class="mb-3 col-6">
+                        <t t-if="event.phone">
+                            <strong>Phone:</strong> 
+                            <span t-field="event.phone"/>
+                        </t>
+                    </div>
+                    <div class="mb-3 col-6" t-if="event.email">
+                        <strong>Email:</strong> <span t-field="event.email"/>
+                    </div>
+                </div>
+                <div class="row" id="tr_date">
+                    <div class="mb-3 col-6">
+                        <t t-if="event.date_closed">
+                            <strong>Attended Date:</strong> 
+                            <span t-field="event.date_closed"/>
+                        </t>
+                    </div>
+                    <div class="mb-3 col-6">
+                        <t t-if="event.event_ticket_id">
+                            <strong>Event Ticket : </strong> 
+                            <span t-field="event.event_ticket_id"/>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</odoo>
